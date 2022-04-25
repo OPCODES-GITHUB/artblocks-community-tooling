@@ -188,7 +188,7 @@ export class ReportService {
     // Build the global CSV header
     let projectReportHeader = `PROJECT NAME${sep}TOTAL SALES${sep}ARTIST ADDRESS${sep}ADDITIONAL ADDRESS`;
     for (const crypto of ART_BLOCKS_PAYMENT_TOKENS) {
-      projectReportHeader += `${sep}V1 ${crypto} VOLUME${sep}V2 ${crypto} VOLUME${sep}TOTAL ${crypto} VOLUME${sep}${crypto} FOR ARTIST${sep}${crypto} FOR ADDITIONAL`;
+      projectReportHeader += `${sep}OSV1 ${crypto} VOLUME${sep}OSV2 ${crypto} VOLUME${sep}LOOKSRARE ${crypto} VOLUME${sep}TOTAL ${crypto} VOLUME${sep}${crypto} FOR ARTIST${sep}${crypto} FOR ADDITIONAL`;
     }
 
     let csvData = blocksHeader + projectReportHeader + "\n";
@@ -223,8 +223,9 @@ export class ReportService {
       const volume = paymentTokenVolumes.get(crypto);
 
       // If no sales was made with this payment token, record it with a 0
-      let v1VolumeReadable = "0.00000";
-      let v2VolumeReadable = "0.00000";
+      let osV1VolumeReadable = "0.00000";
+      let osV2VolumeReadable = "0.00000";
+      let looksRareVolumeReadable = "0.00000";
       let totalVolumeReadable = "0.00000";
       let amountToArtistReadable = "0.00000";
       let amountToAdditionalPayeeReadable = "0.00000";
@@ -232,8 +233,9 @@ export class ReportService {
       // Else fetch the amounts
       if (volume !== undefined) {
         const { toArtist, toAdditional } = cryptoDue.get(crypto)!;
-        v1VolumeReadable = amountHumanReadable(crypto, volume["V1"]);
-        v2VolumeReadable = amountHumanReadable(crypto, volume["V2"]);
+        osV1VolumeReadable = amountHumanReadable(crypto, volume["OSV1"]);
+        osV2VolumeReadable = amountHumanReadable(crypto, volume["OSV2"]);
+        looksRareVolumeReadable = amountHumanReadable(crypto, volume['LOOKSRARE']);
         totalVolumeReadable = amountHumanReadable(crypto, volume.total);
         amountToArtistReadable = amountHumanReadable(crypto, toArtist);
         amountToAdditionalPayeeReadable =
@@ -242,7 +244,7 @@ export class ReportService {
             : "0.00000";
       }
 
-      projectReportData += `${sep}${v1VolumeReadable}${sep}${v2VolumeReadable}${sep}${totalVolumeReadable}${sep}${amountToArtistReadable}${sep}${amountToAdditionalPayeeReadable}`;
+      projectReportData += `${sep}${osV1VolumeReadable}${sep}${osV2VolumeReadable}${sep}${looksRareVolumeReadable}${sep}${totalVolumeReadable}${sep}${amountToArtistReadable}${sep}${amountToAdditionalPayeeReadable}`;
     }
 
     return projectReportData + "\n";
