@@ -9,20 +9,20 @@ import {
   AB_FLAGSHIP_CONTRACTS,
 } from "./constant";
 import { GraphQLDatasource } from "./datasources/graphQL_datasource";
-import { OpenseaSalesRepository } from "./repositories/opensea_sales_repository";
+import { SalesRepository } from "./repositories/sales_repository";
 import { ReportService } from "./services/report_service";
-import { OpenSeaSalesService } from "./services/opensea_sales_service";
-import { T_OpenSeaSale } from "./types/graphQL_entities_def";
+import { SalesService } from "./services/sales_service";
+import { T_Sale } from "./types/graphQL_entities_def";
 import { exit } from "process";
 
 // Instanciate datasources, repositories and services
 const graphQLDatasource = new GraphQLDatasource(URL_GRAPHQL_ENDPOINT);
-const openSeaSalesRepository = new OpenseaSalesRepository(graphQLDatasource);
-const openSeaSaleService = new OpenSeaSalesService(openSeaSalesRepository);
+const salesRepository = new SalesRepository(graphQLDatasource);
+const saleService = new SalesService(salesRepository);
 
 type Collection = "curated" | "playground" | "factory";
 
-type OpenSeaSalesFilter = {
+type SalesFilter = {
   collectionFilter?: Collection,
   contractFilterType?: "ONLY" | "ONLY_NOT"
   contractsFilter?: string[]
@@ -55,40 +55,40 @@ async function getCurrentBlockNumber() {
  */
 async function processSales(
   blockRange: [number, number],
-  openseaSalesFilter: OpenSeaSalesFilter,
+  salesFilter: SalesFilter,
   csvOutputFilePath?: string,
 ) {
-  let openSeaSales = await openSeaSaleService.getAllSalesBetweenBlockNumbers(
+  let sales = await saleService.getAllSalesBetweenBlockNumbers(
     blockRange
   );
 
-  console.info(`[INFO] ${openSeaSales.length} OpenSea sales have been fetched`);
+  console.info(`[INFO] ${sales.length} OpenSea and LooksRare sales have been fetched`);
 
-  const collectionFilter = openseaSalesFilter.collectionFilter;
-  const contractFilterType = openseaSalesFilter.contractFilterType;
-  const contractsFilter = openseaSalesFilter.contractsFilter;
+  const collectionFilter = salesFilter.collectionFilter;
+  const contractFilterType = salesFilter.contractFilterType;
+  const contractsFilter = salesFilter.contractsFilter;
 
   let additionalSalesFoundInBundledSales = 0;
   let skippedOtherContractsTokens = 0;
   let skippedCurationStatus = 0;
 
   // Among all sales, filter those we are interested in.
-  // Filter the OpenSeaSales that match the given OpenSeaSalesFilter
-  // WARNING: It will modify IN PLACE the openSeaSale.openSeaSaleLookupTables list to remove any OpenSeaSaleLookupTable
-  //          that did not match the filter. If for a given openSeaSale, there was no OpenSeaSaleLookupTable (several
-  //          for unble sale) that passed the filter, the openSeaSale is filtered.
-  openSeaSales = openSeaSales.filter((openSeaSale: T_OpenSeaSale) => {
-    const openSeaSaleLookupTables = openSeaSale.openSeaSaleLookupTables;
+  // Filter the sales that match the given SalesFilter
+  // WARNING: It will modify IN PLACE the sale.saleLookupTables list to remove any saleLookupTable
+  //          that did not match the filter. If for a given sale, there was no SaleLookupTable (several
+  //          for unble sale) that passed the filter, the sale is filtered.
+  sales = sales.filter((sale: T_Sale) => {
+    const saleLookupTable = sale.saleLookupTables;
 
     let nbTokenSold = 0;
-    let filteredOpenSeaSaleLookupTables = openSeaSaleLookupTables.filter((openSeaSaleLookupTable) => {
+    let filteredSaleLookupTable = saleLookupTable.filter((saleLookupTable) => {
       nbTokenSold += 1;
 
       if (nbTokenSold > 1) {
         additionalSalesFoundInBundledSales += 1;
       }
 
-      const token = openSeaSaleLookupTable.token;
+      const token = saleLookupTable.token;
       const curationFilterPass = collectionFilter == undefined || token.project.curationStatus === collectionFilter;
 
       const contractsFilterPass =
@@ -105,9 +105,9 @@ async function processSales(
       return curationFilterPass && contractsFilterPass;;
     });
 
-    // WARNING: Replace the openSeaSaleLookupTables by the filteredOpenSeaSaleLookupTables
-    openSeaSale.openSeaSaleLookupTables = filteredOpenSeaSaleLookupTables;
-    return openSeaSale.openSeaSaleLookupTables.length > 0;
+    // WARNING: Replace the saleLookupTable by the filteredSaleLookupTable
+    sale.saleLookupTables = filteredSaleLookupTable;
+    return sale.saleLookupTables.length > 0;
   });
 
   // report any additional tokens found
@@ -134,27 +134,27 @@ async function processSales(
     );
   }
 
-  console.info(`[INFO] ${openSeaSales.length} OpenSea sales after filtering`);
+  console.info(`[INFO] ${sales.length} sales after filtering`);
 
   // Filter private sales
-  openSeaSales = openSeaSales.filter((sale) =>
-    OpenSeaSalesService.saleHasRoyalties(sale)
+  sales = sales.filter((sale) =>
+    SalesService.saleHasRoyalties(sale)
   );
 
   console.info(
-    `[INFO] ${openSeaSales.length} OpenSea sales remaining after filtering ` +
+    `[INFO] ${sales.length} sales remaining after filtering ` +
     `private sales without royalties (prior to block ` +
     `${BLOCK_WHERE_PRIVATE_SALES_HAVE_ROYALTIES})`
   );
 
   // if nothing found, alert and return
-  if (openSeaSales.length <= 0) {
+  if (sales.length <= 0) {
     console.info("[INFO] No sales found (nothing to process), exiting");
     return;
   }
 
-  const projectReports = openSeaSaleService.generateProjectReports(
-    openSeaSales,
+  const projectReports = saleService.generateProjectReports(
+    sales,
   );
 
   if (csvOutputFilePath !== undefined) {
@@ -191,7 +191,7 @@ yargs(hideBin(process.argv))
   .strict()
   .command(
     "range <startingBlock> [endingBlock] [collection] [flagship] [csv] [outputPath]",
-    "Process all Opensea sales after startingBlock (included) and before endingBlock (excluded)",
+    "Process all OpenSea and LooksRare sales after startingBlock (included) and before endingBlock (excluded)",
     (yargs) => {
       yargs
         .positional("startingBlock", {
@@ -247,7 +247,7 @@ yargs(hideBin(process.argv))
       let outputPath = argv.outputPath as string | undefined;
 
       const collection = argv.collection as Collection | undefined;
-      let openSeaSalesFilter: OpenSeaSalesFilter = {
+      let salesFilter: SalesFilter = {
         collectionFilter: collection,
       }
 
@@ -258,15 +258,15 @@ yargs(hideBin(process.argv))
       let contract = argv.contract as string | undefined;
 
       if (flagship) {
-        openSeaSalesFilter.contractFilterType = "ONLY"
-        openSeaSalesFilter.contractsFilter = AB_FLAGSHIP_CONTRACTS
+        salesFilter.contractFilterType = "ONLY"
+        salesFilter.contractsFilter = AB_FLAGSHIP_CONTRACTS
       } else if (pbab) {
-        openSeaSalesFilter.contractFilterType = "ONLY_NOT"
-        openSeaSalesFilter.contractsFilter = AB_FLAGSHIP_CONTRACTS
+        salesFilter.contractFilterType = "ONLY_NOT"
+        salesFilter.contractsFilter = AB_FLAGSHIP_CONTRACTS
       } else if (contract) {
         contract = contract.toLowerCase();
-        openSeaSalesFilter.contractFilterType = "ONLY"
-        openSeaSalesFilter.contractsFilter = [contract]
+        salesFilter.contractFilterType = "ONLY"
+        salesFilter.contractsFilter = [contract]
       }
 
       // ensure ending block < currentBlock via etherscan api
@@ -295,7 +295,7 @@ yargs(hideBin(process.argv))
       }
       await processSales(
         [startingBlock, endingBlock],
-        openSeaSalesFilter,
+        salesFilter,
         outputPath,
       );
     }
