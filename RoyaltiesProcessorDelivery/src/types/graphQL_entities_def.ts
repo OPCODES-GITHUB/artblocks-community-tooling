@@ -17,15 +17,15 @@ type T_Token = {
     project: T_Project,
 }
 
-type T_OpenSeaSaleLookupTable = {
+type T_SaleLookupTable = {
     id: string,
     token: T_Token,
-    openSeaSale: T_OpenSeaSale
+    sale: T_Sale
 }
 
-export type T_OpenSeaSale = {
+export type T_Sale = {
     id: string;
-    saleVersion: "V1" | "V2";
+    exchange: "OSV1" | "OSV2" | "LOOKSRARE";
     saleType: "Single" | "Bundle";
     blockNumber: number;
     blockTimestamp: string;
@@ -35,5 +35,5 @@ export type T_OpenSeaSale = {
     price: string;
     isPrivate: boolean;
     summaryTokensSold: string;
-    openSeaSaleLookupTables: T_OpenSeaSaleLookupTable[];
+    saleLookupTables: T_SaleLookupTable[];
 };
