@@ -296,7 +296,7 @@ export class ReportService {
       }
 
       const { toArtist, toAdditional } = cryptoDue.get(crypto)!;
-      const memo = `${projectReport.name} Sold on OpenSea between blocks ${blockRange[0]} and ${blockRange[1]}`;
+      const memo = `${projectReport.name} Sold on opensea and looksrare between blocks ${blockRange[0]} and ${blockRange[1]}`;
 
       // Only add the line for the artist if amount perceived is > 0
       if (toArtist.gt(0)) {
