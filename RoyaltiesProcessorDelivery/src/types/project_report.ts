@@ -106,12 +106,14 @@ export class ProjectReport {
         return this.#cryptoDue;
     }
 
-    public computeCryptoDue(): void {
-        const percent = 5; // 5% is due
+    public computeCryptoDue(looksRareFeesPercentage: number): void {
+        const openseaFeesPercentage = 5;
 
         for (const crypto of this.#paymentTokenVolumes.keys()) {
-            const volume = this.#paymentTokenVolumes.get(crypto)!;
-            const globalDue = volume.total.mul(percent).div(100);
+            const volumeTotal = this.#paymentTokenVolumes.get(crypto)!;
+            const volumeOpensea = volumeTotal["OSV1"].add(volumeTotal["OSV2"]);
+            const volumeLoooksRare = volumeTotal["LOOKSRARE"];
+            const globalDue = (volumeOpensea.mul(openseaFeesPercentage).div(100)).add(volumeLoooksRare.mul(looksRareFeesPercentage).div(100));
 
             const toAdditionalPayee = this.#additionalPayeePercentage !== null ? globalDue.mul(this.#additionalPayeePercentage).div(100) : 0;
             const dueToArtist = globalDue.sub(toAdditionalPayee);
