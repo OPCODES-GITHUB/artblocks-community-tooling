@@ -88,6 +88,7 @@ export class SalesService {
     sales: T_Sale[],
   ): Map<string, ProjectReport> {
     const projectReports = new Map<string, ProjectReport>();
+    const projectFeesPercentageLooksRare = new Map<string, number>();
 
     // Browse all sales
     for (const sale of sales) {
@@ -119,6 +120,9 @@ export class SalesService {
 
         projectReport.addSale(sale, nbTokensSold);
         projectReports.set(project.name, projectReport);
+        if (!projectFeesPercentageLooksRare.has(project.name) && tokenSaleLookupTable.sale.exchange === "LOOKSRARE") {
+          projectFeesPercentageLooksRare.set(project.name, tokenSaleLookupTable.sale.fees);
+        }
       }
     }
 
@@ -126,7 +130,7 @@ export class SalesService {
     // we can compute the crypto due to artists
     for (const projectName of projectReports.keys()) {
       const projectReport = projectReports.get(projectName)!;
-      projectReport.computeCryptoDue();
+      projectFeesPercentageLooksRare.has(projectName) === true ? projectReport.computeCryptoDue(projectFeesPercentageLooksRare.get(projectName)!) : projectReport.computeCryptoDue(0);
     }
 
     return projectReports;
