@@ -3,7 +3,7 @@ import { gql } from "graphql-request"
 import { GraphQLDatasource } from "../datasources/graphQL_datasource";
 import { T_Sale } from "../types/graphQL_entities_def";
 
-const QUERY_GET_OPENSEA_SALES = gql`
+const QUERY_GET_SALES = gql`
 query getSales($first: Int!, $skip: Int!) {
   sales(first: $first, skip: $skip, where: {WHERE_CLAUSE}, orderBy: blockNumber, orderDirection: desc) {
     id
@@ -15,6 +15,7 @@ query getSales($first: Int!, $skip: Int!) {
     blockTimestamp
     isPrivate
     summaryTokensSold
+    fees
     saleLookupTables {
       id
       token {
@@ -49,9 +50,9 @@ export class SalesRepository {
   }
 
   async getSalesBetweenBlockNumbers(variables: T_QueryVariable_GetSales, blockNumberGte: number, blockNumberLt: number): Promise<T_Sale[]> {
-    const query = QUERY_GET_OPENSEA_SALES.replace("WHERE_CLAUSE", `blockNumber_gte: ${blockNumberGte}, blockNumber_lt: ${blockNumberLt}`);
+    const query = QUERY_GET_SALES.replace("WHERE_CLAUSE", `blockNumber_gte: ${blockNumberGte}, blockNumber_lt: ${blockNumberLt}`);
 
     const resp = await this.#graphQLDatasource.query(query, variables);
-    return resp.openSeaSales as T_Sale[];
+    return resp.sales as T_Sale[];
   }
 }
