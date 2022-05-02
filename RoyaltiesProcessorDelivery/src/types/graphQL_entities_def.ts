@@ -36,4 +36,5 @@ export type T_Sale = {
     isPrivate: boolean;
     summaryTokensSold: string;
     saleLookupTables: T_SaleLookupTable[];
+    fees: number;
 };
